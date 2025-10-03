@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'/><meta name='viewport' content='width=device-width,initial-scale=1.0'/>
+<title>TASE Dashboard — Executive Integrated v2</title>
+<style>
+:root{--bg:#0f172a;--panel:#1e293b;--line:#334155;--text:#f8fafc;--muted:#94a3b8;--primary:#3b82f6;--danger:#ef4444;--success:#10b981;--warning:#f59e0b}
+*{box-sizing:border-box;margin:0;padding:0} body{background:var(--bg);color:var(--text);font:14px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto}
+.wrap{max-width:1200px;margin:0 auto;padding:0 16px}.row{display:flex;align-items:center;gap:12px}.sp{flex:1}
+.topbar{position:sticky;top:0;z-index:100;background:var(--panel);border-bottom:1px solid var(--line)}
+.inp,select,textarea{background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 10px}
+.btn{background:var(--line);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 12px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;text-decoration:none}
+.btn:hover{background:#3a4b66}.btn-primary{background:var(--primary);border-color:var(--primary)}.btn-danger{background:var(--danger);border-color:var(--danger)}
+.badge{background:#0b1220;border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:12px;color:var(--muted)}
+.tabs{display:flex;border-bottom:1px solid var(--line);margin:16px 0}.tab{padding:10px 14px;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted)}
+.tab.active{border-bottom-color:var(--primary);color:var(--text)}.tab-content{display:none}.tab-content.active{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:16px}
+.filters{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}.filter-group{display:flex;flex-direction:column;gap:6px}
+.chart-container{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:16px}
+.chart-bars{display:flex;align-items:flex-end;gap:18px;height:210px;position:relative;justify-content:flex-start}
+.chart-bar{position:relative;width:58px;display:flex;flex-direction:column;align-items:center}
+.bar-stack{position:relative;width:100%;height:170px}
+.bar-segment{position:absolute;left:0;right:0;bottom:0;border-radius:4px 4px 0 0}
+.cap-marker{position:absolute;left:-4px;right:-4px;height:2px;background:#94a3b8;opacity:.7;border-top:2px dashed #94a3b8}
+.bar-label{margin-top:8px;font-size:12px;color:var(--muted);text-align:center;max-width:72px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}.legend-item{display:flex;gap:6px;align-items:center;font-size:12px}
+.legend-swatch{width:12px;height:12px;border-radius:3px;border:1px solid #ffffff30}
+.grid{display:grid;gap:14px}.g2{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.task-card{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;position:relative;cursor:pointer}
+.task-card:hover{outline:2px solid #3a4b66}.mini{font-size:12px;color:var(--muted)}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}.status-Open{background:var(--primary)}.status-Pending{background:var(--warning)}
+.status-Closed{background:var(--success)}.status-Canceled{background:#64748b}.overlay{position:fixed;inset:0;display:none;place-items:center;background:#0008;z-index:1000}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;max-width:820px;width:92%}.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.calendar-day-header,.calendar-day{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center}.calendar-day.today{border-color:var(--primary)}
+.tip{position:fixed;right:16px;bottom:16px;background:#0b1220;border:1px solid var(--line);padding:10px 12px;border-radius:10px;display:none}
+#loginModal{display:grid;background:#000}.breach{border-color:var(--danger)!important; box-shadow:0 0 0 1px var(--danger) inset}
+</style>
+</head>
+<body>
+<script>
+(function(){function storageSafe(){try{localStorage.setItem('__t','1');localStorage.removeItem('__t');return localStorage}catch(_){const m={};return{getItem:k=>m[k]||null,setItem:(k,v)=>m[k]=String(v),removeItem:k=>delete m[k]}}}
+const store=storageSafe(), SKEY='tase_session', UKEY='tase_users';
+function setSession(u){try{store.setItem(SKEY, JSON.stringify({user:u,ts:Date.now()}))}catch(_){}}
+function getSession(){try{return JSON.parse(store.getItem(SKEY)||'null')}catch(_){return null}}
+function clearSession(){try{store.removeItem(SKEY)}catch(_){}}
+function setUsers(o){try{store.setItem(UKEY, JSON.stringify(o))}catch(_){}}
+function getUsers(){try{return JSON.parse(store.getItem(UKEY)||'{}')}catch(_){return {}}}
+window.__tase_login_submit=function(ev){if(ev)ev.preventDefault();var u=(document.getElementById('username')||{}).value||'',p=(document.getElementById('password')||{}).value||'';var ok=(u==='admin'&&p==='admin');if(!ok){var users=getUsers(); ok=!!(users[u]&&users[u]===p);} if(ok){setSession(u||'admin'); document.getElementById('loginModal').style.display='none'; window.boot&&window.boot(); return false}else{alert('Invalid credentials');return false}};
+window.__tase_register=function(){var u=prompt('Choose a username'); if(!u) return; var p=prompt('Choose a password'); if(!p) return; var users=getUsers(); if(users[u]){alert('Username exists');return} users[u]=p; setUsers(users); alert('User created');};
+window.addEventListener('hashchange',()=>{if(location.hash==='#guest'){setSession('guest'); document.getElementById('loginModal').style.display='none'; window.boot&&window.boot();}});
+window.__tase_auth={setSession,getSession,clearSession}; if(getSession()) document.getElementById('loginModal').style.display='none';})();
+</script>
+
+<div id="loginModal" class="overlay">
+  <div class="modal" style="max-width:420px">
+    <h2 style="text-align:center;margin-bottom:12px">Login to TASE Dashboard</h2>
+    <form onsubmit="return window.__tase_login_submit && __tase_login_submit(event)">
+      <div style="margin-bottom:10px"><div class="mini">Username</div><input id="username" class="inp" value="admin"/></div>
+      <div style="margin-bottom:16px"><div class="mini">Password</div><input id="password" type="password" class="inp" value="admin"/></div>
+      <div class="row"><button type="button" class="btn" onclick="window.__tase_register && __tase_register()">Register</button><a class="btn" href="#guest">Continue as guest</a><div class="sp"></div><button class="btn btn-primary" type="submit">Login</button></div>
+    </form>
+  </div>
+</div>
+
+<div id="main" style="display:none">
+  <div class="topbar">
+    <div class="wrap row" style="padding:12px 16px">
+      <strong>TASE Dashboard — Executive Integrated v2</strong>
+      <div class="sp"></div>
+      <input id="searchInput" class="inp" placeholder="Search tasks, members..."/>
+      <span id="counters" class="badge">—</span>
+      <button class="btn" data-act="open-task">+ Task</button>
+      <button class="btn" data-act="open-member">+ Member</button>
+      <button class="btn" data-act="open-award">+ Award</button>
+      <select id="moreActions" class="inp"><option value="">More actions</option><option value="import">Import CSV</option><option value="export">Export CSV</option><option value="undo">Undo</option><option value="redo">Redo</option><option value="signout">Sign out</option></select>
+      <input id="csv" type="file" accept=".csv" hidden/>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="tabs">
+      <div class="tab active" data-tab="workload">Workload</div>
+      <div class="tab" data-tab="analytics">Analytics</div>
+      <div class="tab" data-tab="deliverables">Deliverables</div>
+      <div class="tab" data-tab="awards">Awards</div>
+      <div class="tab" data-tab="members">Members</div>
+      <div class="tab" data-tab="calendar">Calendar</div>
+    </div>
+
+    <div id="workload" class="tab-content active">
+      <div class="filters">
+        <div class="filter-group"><div class="mini">Date range</div><div class="row"><input type="date" id="filterStart" class="inp"/><input type="date" id="filterEnd" class="inp"/></div></div>
+        <div class="filter-group"><div class="mini">Quick</div><select id="quickRange" class="inp"><option value="">Pick</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="180">Last 180 days</option><option value="365">Last 365 days</option></select></div>
+        <div class="filter-group"><div class="mini">Deliverable</div><select id="filterDeliverable" class="inp"><option value="All">All</option></select></div>
+        <div class="filter-group"><div class="mini">Shift</div><select id="filterShift" class="inp"><option value="All">All</option><option>Early</option><option>Late</option><option>Night</option></select></div>
+        <div class="filter-group"><div class="mini">Country</div><select id="filterCountry" class="inp"><option value="All">All</option><option>MX</option><option>PT</option><option>BR</option><option>US</option></select></div>
+        <div class="filter-group" style="align-self:end"><label class="row mini" style="gap:8px"><input type="checkbox" id="followUp"> Hide Closed</label></div>
+        <div class="filter-group" style="align-self:end"><button class="btn" id="resetFilters">Reset</button></div>
+      </div>
+      <div class="card"><h3>📈 Weighted workload by member (accepted & not closed) + Capacity</h3><div class="chart-container"><div id="workChart" class="chart-bars"></div><div id="workLegend" class="legend"></div></div></div>
+      <div class="card"><h3>📊 Open & Pending tasks by member</h3><div class="chart-container"><div id="statusChart" class="chart-bars"></div><div id="statusLegend" class="legend"></div></div></div>
+      <div class="grid g2" id="taskList"></div>
+    </div>
+
+    <div id="analytics" class="tab-content">
+      <div class="card"><h3>Deliverable analytics</h3><div class="row">
+        <div class="chart-container" style="flex:1"><div id="typeChart" class="chart-bars"></div><div id="typeLegend" class="legend"></div></div>
+        <div class="chart-container" style="flex:1"><div id="critChart" class="chart-bars"></div><div id="critLegend" class="legend"></div></div>
+      </div></div>
+    </div>
+
+    <div id="deliverables" class="tab-content"><div class="card"><div class="row" style="justify-content:space-between"><h3>📦 Deliverables (color • weight • SLO days)</h3><button class="btn btn-primary" id="addDeliverable">+ Deliverable</button></div><div id="deliverablesList" class="grid g2"></div></div></div>
+    <div id="awards" class="tab-content"><div class="card"><h3>🏆 Team Awards</h3><div id="awardsList" class="grid g2"></div></div></div>
+    <div id="members" class="tab-content"><div class="card"><h3>👥 Members (capacity = weekly weight)</h3><div id="membersList" class="grid g2"></div></div></div>
+    <div id="calendar" class="tab-content"><div class="card"><div class="row" style="justify-content:space-between"><h3>📅 Task Calendar</h3><div><button class="btn" id="prevMonth">&lt;</button><span id="currentMonth" class="badge">—</span><button class="btn" id="nextMonth">&gt;</button></div></div><div class="calendar" id="calendarGrid"></div></div></div>
+  </div>
+</div>
+
+<!-- Modals -->
+<div id="taskModal" class="overlay"><div class="modal"><h3 id="taskModalTitle">Add Task</h3>
+<form id="taskForm"><input type="hidden" id="taskId"/>
+  <div class="row"><div style="flex:1"><div class="mini">Type</div><select id="taskType" class="inp" required></select></div>
+    <div style="flex:1"><div class="mini">Criticality</div><select id="taskCriticality" class="inp"><option>Low</option><option>Medium</option><option>High</option></select></div></div>
+  <div class="row" style="margin-top:8px"><div style="flex:1"><div class="mini">Start</div><div class="row"><input type="date" id="taskDate" class="inp"><button class="btn mini" type="button" data-pick="start-today">Today</button><button class="btn mini" type="button" data-pick="start-plus7">+7d</button></div></div>
+    <div style="flex:1"><div class="mini">Due</div><div class="row"><input type="date" id="taskDue" class="inp"><button class="btn mini" type="button" data-pick="due-today">Today</button><button class="btn mini" type="button" data-pick="due-plus7">+7d</button></div></div></div>
+  <div class="row" style="margin-top:8px"><div style="flex:1"><div class="mini">Hours</div><select id="taskHours" class="inp"><option>0-2</option><option>2-4</option><option>4-8</option><option>8+</option></select></div>
+    <div style="flex:1"><div class="mini">Status</div><select id="taskStatus" class="inp"><option>Open</option><option>Pending</option><option>Closed</option><option>Canceled</option></select></div>
+    <label class="row mini" style="align-items:center;margin-top:20px"><input type="checkbox" id="taskAccepted"> <span>Accepted or Assigned</span></label>
+  </div>
+  <div style="margin-top:8px"><div class="mini">Members</div><input id="memberSearch" class="inp" placeholder="Search members"/><div id="memberChoices" class="row" style="flex-wrap:wrap;margin-top:8px"></div></div>
+  <div class="row" style="margin-top:8px"><div style="flex:1"><div class="mini">Link</div><input id="taskLink" class="inp" placeholder="https://..."/></div><label class="row mini" style="align-items:center;margin-top:20px"><input type="checkbox" id="taskShoutout"> <span>Shoutout</span></label></div>
+  <div style="margin-top:8px"><div class="mini">Notes</div><textarea id="taskNotes" class="inp" rows="3"></textarea></div>
+  <div class="row" style="margin-top:12px"><div class="sp"></div><button class="btn" type="button" data-close="#taskModal">Cancel</button><button class="btn btn-primary" type="submit">Save</button></div>
+</form></div></div>
+
+<div id="memberModal" class="overlay"><div class="modal" style="max-width:520px"><h3>Add Member</h3>
+<form id="memberForm"><div class="row"><div style="flex:1"><div class="mini">Name</div><input id="memberName" class="inp"/></div>
+  <div style="flex:1"><div class="mini">Shift</div><select id="memberShift" class="inp"><option>Early</option><option>Late</option><option>Night</option></select></div></div>
+<div class="row" style="margin-top:8px"><div style="flex:1"><div class="mini">Days</div><select id="memberDays" class="inp"><option>Mon-Fri</option><option>Wed-Sun</option><option>Tue-Sat</option></select></div>
+  <div style="flex:1"><div class="mini">Country</div><select id="memberCountry" class="inp"><option>MX</option><option>PT</option><option>BR</option><option>US</option></select></div></div>
+<div class="row" style="margin-top:8px"><div style="flex:1"><div class="mini">Capacity (weekly weight)</div><input id="memberCap" type="number" min="1" class="inp" value="12"/></div></div>
+<div class="row" style="margin-top:12px"><div class="sp"></div><button class="btn" type="button" data-close="#memberModal">Cancel</button><button class="btn btn-primary" type="submit">Save</button></div>
+</form></div></div>
+
+<div id="awardModal" class="overlay"><div class="modal" style="max-width:520px"><h3>Add Award</h3>
+<form id="awardForm"><div class="row"><div style="flex:1"><div class="mini">Type</div><select id="awardType" class="inp"><option>TASE Award</option><option>Excellence Award</option><option>Team Player</option><option>Innovation Award</option></select></div>
+  <div style="flex:1"><div class="mini">Recipient</div><select id="awardRecipient" class="inp"></select></div></div>
+<div style="margin-top:8px"><div class="mini">Description</div><textarea id="awardDescription" class="inp" rows="3"></textarea></div>
+<div style="margin-top:8px"><div class="mini">Date</div><input type="date" id="awardDate" class="inp"/></div>
+<div class="row" style="margin-top:12px"><div class="sp"></div><button class="btn" type="button" data-close="#awardModal">Cancel</button><button class="btn btn-primary" type="submit">Save</button></div>
+</form></div></div>
+
+<div id="toast" class="tip"></div>
+
+<script>
+(()=>{"use strict";
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)], uid=()=>Math.random().toString(36).slice(2,10);
+const fmt=d=>new Date(d).toISOString().slice(0,10), today=fmt(new Date()), daysBetween=(a,b)=>Math.floor((new Date(b)-new Date(a))/86400000);
+const toast=(m,ms=1400)=>{const t=$("#toast"); t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',ms)};
+let hist=[],fut=[]; const snap=()=>JSON.stringify(state); const push=()=>{hist.push(snap()); if(hist.length>50) hist.shift(); fut.length=0}; const undo=()=>{if(hist.length){fut.push(snap()); state=JSON.parse(hist.pop()); renderAll();}}; const redo=()=>{if(fut.length){hist.push(snap()); state=JSON.parse(fut.pop()); renderAll();}};
+const DEF={Escalation:{color:"#9b0000",weight:5,slo:7},UA:{color:"#ff2600",weight:4,slo:5},"UA Effective Ass":{color:"#ffa500",weight:2,slo:5},ASR:{color:"#0023ff",weight:2,slo:3},STAR:{color:"#8a2be2",weight:4,slo:14},"Security Uplift":{color:"#6aa7d6",weight:3,slo:21},TAR:{color:"#ff1a1a",weight:3,slo:7},"Public Presentation":{color:"#cc00ff",weight:3,slo:30}};
+let state={deliverables:{...DEF},members:[{id:uid(),name:"David",shift:"Early",days:"Mon-Fri",country:"MX",capacity:12},{id:uid(),name:"Diego",shift:"Late",days:"Mon-Fri",country:"MX",capacity:12},{id:uid(),name:"Leo",shift:"Night",days:"Wed-Sun",country:"PT",capacity:10},{id:uid(),name:"Nestor",shift:"Early",days:"Wed-Sun",country:"MX",capacity:10}],tasks:[],awards:[{id:uid(),type:"TASE Award",recipient:"David",description:"Outstanding performance",date:today}],filters:{start:fmt(Date.now()-90*864e5),end:today,fDeliverable:"All",fShift:"All",fCountry:"All",search:"",follow:false}};
+(function seed(){const members=state.members.map(m=>m.name),types=Object.keys(state.deliverables),crit=["Low","Medium","High"],hrs=["0-2","2-4","4-8","8+"]; const pick=a=>a[Math.floor(Math.random()*a.length)]; for(let i=0;i<18;i++){const start=fmt(Date.now()-i*3*864e5), due=fmt(new Date(new Date(start).getTime()+(Math.floor(Math.random()*6)+1)*864e5)), type=pick(types), mem=Math.random()<0.3?[pick(members),pick(members)].filter((v,i,a)=>a.indexOf(v)===i):[pick(members)]; state.tasks.push({id:uid(),type,criticality:pick(crit),members:mem,date:start,due,notes:"Demo task",link:"",hours:pick(hrs),status:i%7===0?"Pending":"Open",shoutout:i%5===0,accepted:i%4!==0}); }})();
+function toCSV(){const header=['Type','Criticality','Members','Start','Due','Hours','Status','Accepted','Shoutout','Link','Notes']; const rows=state.tasks.map(t=>[t.type,t.criticality,(t.members||[]).join(';'),t.date,t.due,t.hours,t.status,t.accepted?'yes':'',t.shoutout?'yes':'',t.link||'',(t.notes||'').replace(/\n/g,' ')]); return [header.join(','), ...rows.map(r=>r.map(x=>String(x).includes(',')?`"${String(x).replace(/"/g,'""')}"`:String(x)).join(','))].join('\n');}
+function fromCSV(text){const lines=text.trim().split(/\r?\n/), head=lines.shift().split(','), idx=k=>head.indexOf(k); const parse=(line)=>{const arr=[]; let cur='',q=false; for(let i=0;i<line.length;i++){const c=line[i]; if(c=='"'){ if(q && line[i+1]=='"'){cur+='"'; i++;} else { q=!q; } } else if(c==',' && !q){arr.push(cur); cur='';} else { cur+=c; } } arr.push(cur); const get=k=>arr[idx(k)]||''; return {id:uid(),type:get('Type'),criticality:get('Criticality')||'Medium',members:(get('Members')||'').split(';').filter(Boolean),date:get('Start')||today,due:get('Due')||'',hours:get('Hours')||'2-4',status:get('Status')||'Open',accepted:/^(yes|true|1)$/i.test(get('Accepted')),shoutout:/^(yes|true|1)$/i.test(get('Shoutout')),link:get('Link')||'',notes:get('Notes')||''};}; return lines.map(parse);}
+function inRange(d,s,e){return (!s||d>=s)&&(!e||d<=e)}
+function filteredTasks(){let T=state.tasks.filter(t=>inRange(t.date,state.filters.start,state.filters.end)); if(state.filters.fDeliverable!=='All') T=T.filter(t=>t.type===state.filters.fDeliverable); if(state.filters.fShift!=='All') T=T.filter(t=>t.members.some(n=>(state.members.find(m=>m.name===n)||{}).shift===state.filters.fShift)); if(state.filters.fCountry!=='All') T=T.filter(t=>t.members.some(n=>(state.members.find(m=>m.name===n)||{}).country===state.filters.fCountry)); if(state.filters.follow) T=T.filter(t=>t.status!=='Closed'); const q=(state.filters.search||'').toLowerCase(); if(q) T=T.filter(t=>[t.type,t.criticality,t.members.join(' '),t.notes||''].join(' ').toLowerCase().includes(q)); return T;}
+const weightOf=type=> (state.deliverables[type]?.weight)||1, sloOf=type=> (state.deliverables[type]?.slo)||14, capOf=name=> (state.members.find(m=>m.name===name)?.capacity)||10;
+function renderWorkloadChart(){const bars=$("#workChart"), legend=$("#workLegend"); bars.innerHTML=''; legend.innerHTML=''; const mems=state.members.map(m=>m.name); const tasks=filteredTasks().filter(t=>t.accepted && t.status!=='Closed'); const perMem={}; mems.forEach(n=>perMem[n]={total:0,byType:{},cap:capOf(n)}); tasks.forEach(t=>t.members.forEach(n=>{const w=weightOf(t.type); perMem[n].total+=w; perMem[n].byType[t.type]=(perMem[n].byType[t.type]||0)+w;})); const maxVal=Math.max(1, ...Object.values(perMem).map(v=>Math.max(v.total, v.cap))); mems.forEach(n=>{const card=document.createElement('div'); card.className='chart-bar'; const stack=document.createElement('div'); stack.className='bar-stack'; const capH=Math.round((perMem[n].cap/maxVal)*150)+18; const cap=document.createElement('div'); cap.className='cap-marker'; cap.style.bottom=capH+'px'; stack.appendChild(cap); const total=perMem[n].total; const barH=Math.max(18,(total/maxVal)*150)+18; let y=0; Object.entries(perMem[n].byType).forEach(([type,val])=>{const seg=document.createElement('div'); seg.className='bar-segment'; seg.style.background=(state.deliverables[type]||{}).color||'#777'; const sh= total ? (val/total)*barH : 0; seg.style.height=sh+'px'; seg.style.bottom=y+'px'; y+=sh; seg.title=`${type}: ${val} weight`; stack.appendChild(seg);}); if(!Object.keys(perMem[n].byType).length){const seg=document.createElement('div'); seg.className='bar-segment'; seg.style.background='var(--line)'; seg.style.opacity='.3'; seg.style.height='18px'; stack.appendChild(seg);} card.appendChild(stack); const lbl=document.createElement('div'); lbl.className='bar-label'; lbl.textContent=n; card.appendChild(lbl); bars.appendChild(card);}); Object.entries(state.deliverables).forEach(([type,d])=>{const item=document.createElement('div'); item.className='legend-item'; item.innerHTML=`<span class="legend-swatch" style="background:${d.color}"></span><span>${type} (w:${d.weight}, SLO:${d.slo}d)</span>`; legend.appendChild(item);}); const capItem=document.createElement('div'); capItem.className='legend-item'; capItem.innerHTML=`<span class="legend-swatch" style="background:transparent;border-color:#94a3b8"></span><span>Capacity</span>`; legend.appendChild(capItem);} 
+function renderStatusChart(){const bars=$("#statusChart"), legend=$("#statusLegend"); bars.innerHTML=''; legend.innerHTML=''; const mems=state.members.map(m=>m.name); const tasks=filteredTasks().filter(t=>t.status==='Open'||t.status==='Pending'); const colors={Open:'var(--primary)', Pending:'var(--warning)'}; const perMem={}; mems.forEach(n=>perMem[n]={total:0,by:{Open:0,Pending:0}}); tasks.forEach(t=> t.members.forEach(n=>{ perMem[n].total++; perMem[n].by[t.status]++; })); const max=Math.max(1, ...Object.values(perMem).map(v=>v.total)); mems.forEach(n=>{const cont=document.createElement('div'); cont.className='chart-bar'; const inner=document.createElement('div'); inner.className='bar-stack'; const total=perMem[n].total; const h=Math.max(18,(total/max)*150)+18; let y=0; ['Open','Pending'].forEach(st=>{const c=perMem[n].by[st]; if(!c) return; const seg=document.createElement('div'); seg.className='bar-segment'; seg.style.background=colors[st]; const sh=(c/total)*h; seg.style.height=sh+'px'; seg.style.bottom=y+'px'; y+=sh; seg.title=`${st}: ${c}`; inner.appendChild(seg);}); if(!perMem[n].total){ const seg=document.createElement('div'); seg.className='bar-segment'; seg.style.background='var(--line)'; seg.style.opacity='0.3'; seg.style.height='18px'; inner.appendChild(seg); } cont.appendChild(inner); const lbl=document.createElement('div'); lbl.className='bar-label'; lbl.textContent=n; cont.appendChild(lbl); bars.appendChild(cont);}); ['Open','Pending'].forEach(st=>{ const item=document.createElement('div'); item.className='legend-item'; item.innerHTML=`<span class="legend-swatch" style="background:${colors[st]}"></span><span>${st}</span>`; legend.appendChild(item);});}
+function taskCard(t){const dlv=state.deliverables[t.type]||{color:'#777',slo:14}; const sw=`<span class="status-dot status-${t.status}"></span>`; const breached=(t.status!=='Closed' && daysBetween(t.date,today)>(dlv.slo||14)); return `<div class="task-card ${breached?'breach':''}" data-id="${t.id}"><div class="row" style="justify-content:space-between;margin-bottom:6px"><strong style="color:${dlv.color}">${t.type}</strong><span class="mini">${sw}${t.status}${t.accepted?' • accepted':''}</span></div><div class="mini" style="margin-bottom:6px">${t.date} → ${t.due||'-'} • ${t.criticality} • ${t.hours}</div><div class="mini">Members: ${t.members.join(', ')}</div>${t.notes?`<div style="margin-top:6px">${t.notes}</div>`:''}<div class="row" style="margin-top:8px"><button class="btn mini" data-edit="${t.id}">Edit</button><button class="btn mini" data-accept="${t.id}">${t.accepted?'Unaccept':'Accept'}</button><button class="btn mini" data-del="${t.id}">Delete</button>${t.link?`<a class="btn mini" target="_blank" href="${t.link.startsWith('http')?t.link:'https://'+t.link}">Link</a>`:''}</div></div>`;}
+function renderWorkloadTab(){ $("#counters").textContent = `Dlv:${Object.keys(state.deliverables).length} • Mem:${state.members.length} • Tasks:${state.tasks.length} • Awards:${state.awards.length}`; $("#filterStart").value=state.filters.start; $("#filterEnd").value=state.filters.end; $("#filterDeliverable").innerHTML='<option value="All">All</option>'+Object.keys(state.deliverables).map(k=>`<option ${state.filters.fDeliverable===k?'selected':''}>${k}</option>`).join(''); $("#filterShift").value=state.filters.fShift; $("#filterCountry").value=state.filters.fCountry; $("#followUp").checked=!!state.filters.follow; renderWorkloadChart(); renderStatusChart(); const T=filteredTasks(); $("#taskList").innerHTML=T.map(taskCard).join('') || `<div class="card mini">No tasks with current filters</div>`;}
+function renderAnalytics(){const T=filteredTasks(); const byType={}, byCrit={Low:0,Medium:0,High:0}; T.forEach(t=>{byType[t.type]=(byType[t.type]||0)+1; byCrit[t.criticality]++;}); const typeBars=$("#typeChart"), typeLegend=$("#typeLegend"); typeBars.innerHTML=''; typeLegend.innerHTML=''; const tMax=Math.max(1, ...Object.values(byType)); Object.entries(byType).forEach(([k,v])=>{const cont=document.createElement('div'); cont.className='chart-bar'; const inner=document.createElement('div'); inner.className='bar-stack'; const seg=document.createElement('div'); seg.className='bar-segment'; seg.style.background=(state.deliverables[k]||{}).color||'#777'; seg.style.height=(v/tMax*150+18)+'px'; seg.title=`${k}: ${v}`; inner.appendChild(seg); cont.appendChild(inner); const l=document.createElement('div'); l.className='bar-label'; l.textContent=k; cont.appendChild(l); typeBars.appendChild(cont);}); Object.entries(state.deliverables).forEach(([k,d])=>{const item=document.createElement('div'); item.className='legend-item'; item.innerHTML=`<span class="legend-swatch" style="background:${d.color}"></span><span>${k}</span>`; typeLegend.appendChild(item);}); const critBars=$("#critChart"), critLegend=$("#critLegend"); critBars.innerHTML=''; critLegend.innerHTML=''; const colors={High:'var(--danger)',Medium:'var(--warning)',Low:'var(--success)'}; const cMax=Math.max(1, ...Object.values(byCrit)); Object.entries(byCrit).forEach(([k,v])=>{const cont=document.createElement('div'); cont.className='chart-bar'; const inner=document.createElement('div'); inner.className='bar-stack'; const seg=document.createElement('div'); seg.className='bar-segment'; seg.style.background=colors[k]; seg.style.height=(v/cMax*150+18)+'px'; seg.title=`${k}: ${v}`; inner.appendChild(seg); cont.appendChild(inner); const l=document.createElement('div'); l.className='bar-label'; l.textContent=k; cont.appendChild(l); critBars.appendChild(cont);}); Object.entries(colors).forEach(([k,c])=>{const item=document.createElement('div'); item.className='legend-item'; item.innerHTML=`<span class="legend-swatch" style="background:${c}"></span><span>${k}</span>`; critLegend.appendChild(item);});}
+function renderDeliverables(){const root=$("#deliverablesList"); root.innerHTML=''; Object.entries(state.deliverables).forEach(([name,meta])=>{const card=document.createElement('div'); card.className='card'; card.innerHTML=`<div class="row" style="justify-content:space-between"><div><strong>${name}</strong><span class="badge" style="margin-left:8px">w:${meta.weight}</span><span class="badge" style="margin-left:6px">SLO:${meta.slo}d</span></div><div class="row"><input type="color" value="${meta.color}" data-col="${name}"/><input type="number" class="inp" style="width:80px" min="1" max="10" value="${meta.weight}" data-w="${name}"/><input type="number" class="inp" style="width:100px" min="1" max="120" value="${meta.slo||14}" data-slo="${name}"/><button class="btn btn-danger mini" data-del="${name}">Delete</button></div></div>`; root.appendChild(card);});}
+function renderMembers(){const root=$("#membersList"); root.innerHTML=''; state.members.forEach(m=>{const tcount=state.tasks.filter(t=>t.members.includes(m.name)).length; const card=document.createElement('div'); card.className='card'; card.innerHTML=`<div class="row" style="justify-content:space-between"><strong>${m.name}</strong><span class="badge">${tcount} tasks</span></div><div class="mini">${m.shift} • ${m.days} • ${m.country}</div><div class="row" style="margin-top:8px"><label class="mini">Capacity</label><input type="number" class="inp" style="width:100px" min="1" max="200" value="${m.capacity||10}" data-cap="${m.name}"/></div>`; root.appendChild(card);});}
+function renderAwards(){const root=$("#awardsList"); root.innerHTML= state.awards.map(a=>`<div class="card"><div class="row" style="justify-content:space-between"><strong>${a.type}</strong><span class="mini">${a.date}</span></div><div class="mini">Recipient: ${a.recipient}</div><div>${a.description||''}</div></div>`).join('') || '<div class="card mini">No awards yet</div>';}
+let calendarMonth=new Date(); function renderCalendar(){const grid=$("#calendarGrid"); const y=calendarMonth.getFullYear(), m=calendarMonth.getMonth(); $("#currentMonth").textContent=calendarMonth.toLocaleString(undefined,{month:'long',year:'numeric'}); grid.innerHTML=''; const first=new Date(y,m,1), start=(first.getDay()+7)%7; const days=new Date(y,m+1,0).getDate(); for(let i=0;i<start;i++){const d=document.createElement('div'); d.className='calendar-day'; d.style.opacity='0.4'; grid.appendChild(d);} for(let day=1; day<=days; day++){const date=fmt(new Date(y,m,day)); const cell=document.createElement('div'); cell.className='calendar-day'+(date===today?' today':''); cell.innerHTML=`<div class="mini" style="text-align:right">${day}</div>` + state.tasks.filter(t=>t.date===date).slice(0,3).map(t=>`<div class="mini" style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.type} ${t.members.join(',')}</div>`).join(''); grid.appendChild(cell);} }
+function renderAll(){renderWorkloadTab(); renderAnalytics(); renderDeliverables(); renderMembers(); renderAwards(); renderCalendar();}
+document.addEventListener('click',(e)=>{const tab=e.target.closest('.tab'); if(tab){$$(".tab").forEach(t=>t.classList.remove('active')); $$(".tab-content").forEach(c=>c.classList.remove('active')); tab.classList.add('active'); document.getElementById(tab.dataset.tab).classList.add('active');} const close=e.target.closest('[data-close]'); if(close){document.querySelector(close.getAttribute('data-close')).style.display='none';} if(e.target.matches('[data-act="open-task"]')) openTaskModal(); if(e.target.matches('[data-act="open-member"]')){$("#memberForm").reset(); $("#memberCap").value=12; $("#memberModal").style.display='grid';} if(e.target.matches('[data-act="open-award"]')){$("#awardForm").reset(); $("#awardDate").value=today; const sel=$("#awardRecipient"); sel.innerHTML=state.members.map(m=>`<option>${m.name}</option>`).join(''); $("#awardModal").style.display='grid';}});
+$("#moreActions").addEventListener('change',(e)=>{const v=e.target.value; e.target.value=''; if(v==='import') $("#csv").click(); if(v==='export'){const blob=new Blob([toCSV()],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='tase_tasks.csv'; a.click();} if(v==='undo') undo(); if(v==='redo') redo(); if(v==='signout'){ window.__tase_auth && window.__tase_auth.clearSession(); document.getElementById('main').style.display='none'; document.getElementById('loginModal').style.display='grid'; }});
+$("#csv").addEventListener('change',(e)=>{const f=e.target.files && e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{push(); state.tasks=fromCSV(String(r.result||'')); renderAll(); toast('Imported');}; r.readAsText(f);});
+$("#filterStart").addEventListener('input',e=>{state.filters.start=e.target.value; renderAll();});
+$("#filterEnd").addEventListener('input',e=>{state.filters.end=e.target.value; renderAll();});
+$("#filterDeliverable").addEventListener('change',e=>{state.filters.fDeliverable=e.target.value; renderAll();});
+$("#filterShift").addEventListener('change',e=>{state.filters.fShift=e.target.value; renderAll();});
+$("#filterCountry").addEventListener('change',e=>{state.filters.fCountry=e.target.value; renderAll();});
+$("#followUp").addEventListener('change',e=>{state.filters.follow=!!e.target.checked; renderAll();});
+$("#quickRange").addEventListener('change', e=>{ const d=+e.target.value||0; if(d){ state.filters.end=fmt(new Date()); state.filters.start=fmt(Date.now()-d*864e5); renderAll(); }});
+$("#resetFilters").addEventListener('click',()=>{ state.filters={...state.filters,start:fmt(Date.now()-90*864e5), end:today, fDeliverable:"All", fShift:"All", fCountry:"All", search:"", follow:false}; $("#searchInput").value=''; renderAll(); });
+$("#searchInput").addEventListener('input',(e)=>{state.filters.search=e.target.value; renderAll();});
+$("#taskList").addEventListener('click',(e)=>{const card=e.target.closest('.task-card'); const idBtn=e.target.dataset.edit || e.target.closest('[data-edit]')?.dataset.edit; const del=e.target.dataset.del || e.target.closest('[data-del]')?.dataset.del; const acc=e.target.dataset.accept || e.target.closest('[data-accept]')?.dataset.accept; if(del){push(); state.tasks=state.tasks.filter(x=>x.id!==del); renderAll(); toast('Deleted'); return;} if(acc){push(); const t=state.tasks.find(x=>x.id===acc); t.accepted=!t.accepted; renderAll(); toast(t.accepted?'Accepted':'Unaccepted'); return;} if(idBtn){const t=state.tasks.find(x=>x.id===idBtn); openTaskModal(t); return;} if(card){const id=card.dataset.id; const t=state.tasks.find(x=>x.id===id); openTaskModal(t);}});
+function optionsForType(){return Object.keys(state.deliverables).map(k=>`<option>${k}</option>`).join('');}
+function pill(name, sel){return `<label class="btn mini" style="border-radius:999px;border:1px solid var(--line);padding:6px 10px;${sel?'background:#334155':''}"><input type="checkbox" value="${name}" ${sel?'checked':''}/> ${name}</label>`;}
+function openTaskModal(t=null){$("#taskForm").reset(); $("#taskModalTitle").textContent=t?'Edit Task':'Add Task'; $("#taskId").value=t?.id||''; $("#taskType").innerHTML=optionsForType(); $("#taskType").value=t?.type||Object.keys(state.deliverables)[0]; $("#taskCriticality").value=t?.criticality||'Medium'; $("#taskDate").value=t?.date||today; $("#taskDue").value=t?.due||''; $("#taskHours").value=t?.hours||'2-4'; $("#taskStatus").value=t?.status||'Open'; $("#taskAccepted").checked=!!(t?.accepted); $("#taskLink").value=t?.link||''; $("#taskShoutout").checked=!!(t?.shoutout); $("#taskNotes").value=t?.notes||''; const names=state.members.map(m=>m.name); const selected=new Set(t?.members||[]); $("#memberChoices").innerHTML=names.map(n=>pill(n, selected.has(n))).join(''); $("#memberSearch").value=''; $("#taskModal").style.display='grid';}
+document.getElementById('taskModal').addEventListener('click',(e)=>{const b=e.target.closest('[data-pick]'); if(!b) return; if(b.dataset.pick==='start-today') $("#taskDate").value=today; if(b.dataset.pick==='start-plus7'){const d=new Date(); d.setDate(d.getDate()+7); $("#taskDate").value=fmt(d);} if(b.dataset.pick==='due-today') $("#taskDue").value=today; if(b.dataset.pick==='due-plus7'){const d=new Date(); d.setDate(d.getDate()+7); $("#taskDue").value=fmt(d);}});
+$("#memberSearch").addEventListener('input',(e)=>{const q=(e.target.value||'').toLowerCase(); const names=state.members.map(m=>m.name); const chosen=[...$("#memberChoices").querySelectorAll('input:checked')].map(i=>i.value); $("#memberChoices").innerHTML = names.filter(n=>!q || n.toLowerCase().includes(q) || chosen.includes(n)).map(n=>pill(n, chosen.includes(n))).join('');});
+$("#taskForm").addEventListener('submit',(e)=>{e.preventDefault(); const id=$("#taskId").value||null; push(); const members=[...$("#memberChoices").querySelectorAll('input:checked')].map(i=>i.value); if(!members.length){alert('Pick at least one member'); return;} const T={id:id||uid(), type:$("#taskType").value, criticality:$("#taskCriticality").value, members, date:$("#taskDate").value, due:$("#taskDue").value, hours:$("#taskHours").value, status:$("#taskStatus").value, accepted:$("#taskAccepted").checked, shoutout:$("#taskShoutout").checked, link:$("#taskLink").value, notes:$("#taskNotes").value}; if(id){const i=state.tasks.findIndex(x=>x.id===id); state.tasks[i]=T;} else {state.tasks.push(T);} document.querySelector('#taskModal').style.display='none'; renderAll(); toast('Saved');});
+$("#memberForm").addEventListener('submit',(e)=>{e.preventDefault(); push(); state.members.push({id:uid(), name:$("#memberName").value, shift:$("#memberShift").value, days:$("#memberDays").value, country:$("#memberCountry").value, capacity:+$("#memberCap").value||10}); document.querySelector('#memberModal').style.display='none'; renderAll(); toast('Member added');});
+$("#awardForm").addEventListener('submit',(e)=>{e.preventDefault(); push(); state.awards.push({id:uid(), type:$("#awardType").value, recipient:$("#awardRecipient").value, description:$("#awardDescription").value, date:$("#awardDate").value||today}); document.querySelector('#awardModal').style.display='none'; renderAll(); toast('Award added');});
+document.getElementById('deliverables').addEventListener('input',(e)=>{if(e.target.dataset.col){const k=e.target.dataset.col; push(); state.deliverables[k].color=e.target.value; renderAll();} if(e.target.dataset.w){const k=e.target.dataset.w; const v=Math.max(1,Math.min(10,+e.target.value||1)); push(); state.deliverables[k].weight=v; renderAll();} if(e.target.dataset.slo){const k=e.target.dataset.slo; const v=Math.max(1, Math.min(365, +e.target.value||14)); push(); state.deliverables[k].slo=v; renderAll();}});
+document.getElementById('deliverables').addEventListener('click',(e)=>{if(e.target.dataset.del){const k=e.target.dataset.del; push(); delete state.deliverables[k]; state.tasks=state.tasks.filter(t=>t.type!==k); renderAll();} if(e.target.id==='addDeliverable'){const name=prompt('Deliverable name'); if(!name) return; const color="#"+((Math.random()*0xffffff|0).toString(16).padStart(6,'0')); push(); state.deliverables[name]={color,weight:2,slo:14}; renderAll();}});
+document.getElementById('members').addEventListener('input',(e)=>{if(e.target.dataset.cap){const name=e.target.dataset.cap; const v=Math.max(1, Math.min(999, +e.target.value||10)); push(); const m=state.members.find(x=>x.name===name); if(m){ m.capacity=v; renderAll(); }}});
+document.getElementById('prevMonth').addEventListener('click',()=>{ calendarMonth.setMonth(calendarMonth.getMonth()-1); renderCalendar(); });
+document.getElementById('nextMonth').addEventListener('click',()=>{ calendarMonth.setMonth(calendarMonth.getMonth()+1); renderCalendar(); });
+window.boot=function(){ document.getElementById('main').style.display='block'; renderAll(); };
+if(window.__tase_auth && window.__tase_auth.getSession && window.__tase_auth.getSession()) document.getElementById('main').style.display='block';
+renderAll();
+})();
+</script>
+</body></html>
